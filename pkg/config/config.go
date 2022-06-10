@@ -11,7 +11,7 @@ type Config struct {
 	BaseURL       string `yaml:"baseURL"`
 	ApiType       string `yaml:"apiType"`
 	Realm         string `yaml:"realm"`
-	Client        string `yaml:"clinet"`
+	Client        string `yaml:"client"`
 	AdminLogin    string `yaml:"adminLogin"`
 	AdminPassword string `yaml:"adminPassword"`
 }

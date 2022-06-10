@@ -44,7 +44,7 @@ func (apiClinet *KeycloakApiClient) Authenticate() {
 	reqForm := url.Values{
 		"grant_type": {"password"},
 		"client_id":  {config.Client},
-		"user":       {config.AdminLogin},
+		"username":   {config.AdminLogin},
 		"password":   {config.AdminPassword},
 	}
 
@@ -58,6 +58,8 @@ func (apiClinet *KeycloakApiClient) Authenticate() {
 	if err != nil {
 		fmt.Println("Failed to read response body")
 	}
+
+	fmt.Println(string(body))
 
 	var keycloakResponse = new(KyecloakApiResponse)
 	err1 := json.Unmarshal(body, &keycloakResponse)
