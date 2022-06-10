@@ -23,8 +23,6 @@ func GetConf() *Config {
 		fmt.Printf("yamlFile.Get err   #%v ", err)
 	}
 
-	fmt.Println(string(yamlFile))
-
 	err = yaml.Unmarshal(yamlFile, &c)
 	if err != nil {
 		fmt.Printf("Unmarshal: %v", err)

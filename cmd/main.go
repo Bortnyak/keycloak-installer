@@ -5,7 +5,12 @@ import (
 )
 
 func main() {
-	c := &apiclient.KeycloakApiClient{}
-	c.Authenticate()
-	c.InitRoles()
+	keycloakAPI := &apiclient.KeycloakApiClient{}
+	keycloakAPI.Authenticate()
+
+	// all the necessary roles (ids) to map to roles from the database
+	keycloakAPI.InitRoles()
+
+	// protocol mapper to include custom a role in the access token
+	keycloakAPI.CreateProtocolMapper()
 }

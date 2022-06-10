@@ -12,6 +12,7 @@ import (
 
 	conf "github.com/Bortnyak/keycloak-installer/pkg/config"
 	"github.com/Bortnyak/keycloak-installer/pkg/roles"
+	"github.com/TwiN/go-color"
 )
 
 type KeycloakApiClient struct {
@@ -34,13 +35,25 @@ type KyecloakApiResponse struct {
 	Scope                 string `json:"scope"`
 }
 
+type KeycloakRealmClient struct {
+	ClientId string `json:"clientId"`
+	Name     string `json:"name"`
+	Id       string `json:"id"`
+}
+
 const getTokenURLPath = "/realms/master/protocol/openid-connect/token"
 
 type CreateRolePayload struct {
 	Name string `json:"name"`
 }
 
-func (apiClinet *KeycloakApiClient) Authenticate() {
+type CreateProtocolMapperPayload struct {
+	Name           string `json:"name"`
+	Protocol       string `json:"protocol"`
+	ProtocolMapper string `json:"protocolMapper"`
+}
+
+func (apiClient *KeycloakApiClient) Authenticate() {
 	config := conf.GetConf()
 	reqForm := url.Values{
 		"grant_type": {"password"},
@@ -68,11 +81,11 @@ func (apiClinet *KeycloakApiClient) Authenticate() {
 		fmt.Println("Failed to unmarshal response body")
 	}
 
-	apiClinet.token = keycloakResponse.Token
+	apiClient.token = keycloakResponse.Token
+	println(color.Ize(color.Green, "Authenticated"))
 }
 
-func (apiClinet *KeycloakApiClient) CreateRole(roleName string) error {
-	fmt.Println("Inside roles")
+func (apiClient *KeycloakApiClient) CreateRole(roleName string) {
 	config := conf.GetConf()
 
 	httpClient := &http.Client{
@@ -91,12 +104,11 @@ func (apiClinet *KeycloakApiClient) CreateRole(roleName string) error {
 		fmt.Println("Failed to create new request: ", err)
 	}
 
-	req.Header.Set("Authorization", "Bearer "+apiClinet.token)
+	req.Header.Set("Authorization", "Bearer "+apiClient.token)
 	req.Header.Set("Content-Type", "application/json")
 
 	resp, err := httpClient.Do(req)
 	fmt.Println(resp)
-	return nil
 }
 
 func (apiClinet *KeycloakApiClient) InitRoles() {
@@ -110,4 +122,83 @@ func (apiClinet *KeycloakApiClient) InitRoles() {
 		}(role)
 	}
 	wg.Wait()
+	println(color.Ize(color.Green, "Roles created"))
+}
+
+func (apiClient *KeycloakApiClient) CreateProtocolMapper() {
+	realmClients := apiClient.GetClients()
+	adminCliClient := getRightClientId(*realmClients)
+	apiClient.createProtocolMapperForClient(adminCliClient)
+	println(color.Ize(color.Green, "Protocol mapper created"))
+}
+
+func (apiClient *KeycloakApiClient) GetClients() *[]KeycloakRealmClient {
+	config := conf.GetConf()
+
+	httpClient := &http.Client{
+		Timeout: time.Second * 10,
+	}
+
+	reqURL := config.BaseURL + "/admin/realms/" + config.Realm + "/clients"
+	req, err := http.NewRequest("GET", reqURL, nil)
+	if err != nil {
+		fmt.Println("Failed to create new request: ", err)
+	}
+
+	req.Header.Set("Authorization", "Bearer "+apiClient.token)
+	req.Header.Set("Content-Type", "application/json")
+
+	resp, err := httpClient.Do(req)
+	if err != nil {
+		fmt.Println("Failed to get clinets: ", err)
+	}
+
+	respBody, err := ioutil.ReadAll(resp.Body)
+	if err != nil {
+		fmt.Println("Failed to get response body: ", err)
+	}
+
+	var realmClients []KeycloakRealmClient
+	err = json.Unmarshal(respBody, &realmClients)
+
+	return &realmClients
+}
+
+func getRightClientId(clients []KeycloakRealmClient) string {
+	conf := conf.GetConf()
+	var id string
+
+	for _, clientStruct := range clients {
+		if clientStruct.ClientId == conf.Client {
+			id = clientStruct.Id
+		}
+	}
+
+	return id
+}
+
+func (apiClinet *KeycloakApiClient) createProtocolMapperForClient(clientId string) {
+	config := conf.GetConf()
+
+	httpClient := &http.Client{
+		Timeout: time.Second * 10,
+	}
+
+	protocolPayload := &CreateProtocolMapperPayload{Name: "RealmAccessProtocolMapper", Protocol: "openid-connect", ProtocolMapper: "oidc-custom-roles-protocol-mapper"}
+	reqBody, err := json.Marshal(protocolPayload)
+	if err != nil {
+		fmt.Println("Failed to marshal request body, e: ", err)
+	}
+
+	reqURL := config.BaseURL + "/admin/realms/" + config.Realm + "/clients/" + clientId + "/protocol-mappers/models"
+	req, err := http.NewRequest("POST", reqURL, bytes.NewBuffer(reqBody))
+	if err != nil {
+		fmt.Println("Failed to create new request for protocol mapper: ", err)
+	}
+
+	req.Header.Set("Authorization", "Bearer "+apiClinet.token)
+	req.Header.Set("Content-Type", "application/json")
+
+	resp, err := httpClient.Do(req)
+	fmt.Println(resp)
 }
