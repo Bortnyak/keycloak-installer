@@ -7,13 +7,14 @@ import (
 	"io/ioutil"
 	"net/http"
 	"net/url"
+	"sync"
 	"time"
 
 	conf "github.com/Bortnyak/keycloak-installer/pkg/config"
+	"github.com/Bortnyak/keycloak-installer/pkg/roles"
 )
 
 type KeycloakApiClient struct {
-	// baseURL             string
 	masterRealmURL      string
 	masterRealmTokenURL string
 	realmName           string
@@ -71,6 +72,7 @@ func (apiClinet *KeycloakApiClient) Authenticate() {
 }
 
 func (apiClinet *KeycloakApiClient) CreateRole(roleName string) error {
+	fmt.Println("Inside roles")
 	config := conf.GetConf()
 
 	httpClient := &http.Client{
@@ -89,9 +91,21 @@ func (apiClinet *KeycloakApiClient) CreateRole(roleName string) error {
 		fmt.Println("Failed to create new request: ", err)
 	}
 
-	// Set auth headers
+	req.Header.Set("Authorization", "Bearer "+apiClinet.token)
+	req.Header.Set("Content-Type", "application/json")
 
-	httpClient.Do(req)
-
+	resp, err := httpClient.Do(req)
+	fmt.Println(resp)
 	return nil
+}
+
+func (apiClinet *KeycloakApiClient) InitRoles() {
+	var wg sync.WaitGroup
+
+	for _, role := range roles.RoleIds {
+		wg.Add(1)
+		go apiClinet.CreateRole(role)
+	}
+
+	wg.Wait()
 }

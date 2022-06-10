@@ -7,5 +7,5 @@ import (
 func main() {
 	c := &apiclient.KeycloakApiClient{}
 	c.Authenticate()
-	// c.CreateRole("name")
+	c.InitRoles()
 }
