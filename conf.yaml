@@ -1,0 +1,6 @@
+baseURL: http://localhost:8080/auth   #comment
+apiType: admin                        #comment
+realm: testRealm                      #comment
+client: admin-cli                     #comment
+adminLogin: admin                     #comment
+adminPassword: password               #comment
