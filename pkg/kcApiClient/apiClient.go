@@ -101,11 +101,13 @@ func (apiClinet *KeycloakApiClient) CreateRole(roleName string) error {
 
 func (apiClinet *KeycloakApiClient) InitRoles() {
 	var wg sync.WaitGroup
-
 	for _, role := range roles.RoleIds {
 		wg.Add(1)
-		go apiClinet.CreateRole(role)
-	}
 
+		go func(role string) {
+			defer wg.Done()
+			apiClinet.CreateRole(role)
+		}(role)
+	}
 	wg.Wait()
 }
