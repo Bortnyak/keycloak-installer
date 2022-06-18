@@ -24,14 +24,14 @@ type KeycloakApiClient struct {
 	token               string
 }
 
-type KyecloakApiResponse struct {
+type KeycloakApiResponse struct {
 	Token                 string `json:"access_token"`
 	Expires               int    `json:"expires_in"`
 	RefreshTokenExpiresIn int    `json:"refresh_expires_in"`
 	RefreshToken          string `json:"refresh_token"`
 	TokenType             string `json:"token_type"`
 	NotBeforePolicy       int    `json:"not-before-policy"`
-	SessionState          string `json:"sessoin_state"`
+	SessionState          string `json:"session_state"`
 	Scope                 string `json:"scope"`
 }
 
@@ -75,7 +75,7 @@ func (apiClient *KeycloakApiClient) Authenticate() {
 
 	fmt.Println(string(body))
 
-	var keycloakResponse = new(KyecloakApiResponse)
+	var keycloakResponse = new(KeycloakApiResponse)
 	err1 := json.Unmarshal(body, &keycloakResponse)
 	if err1 != nil {
 		fmt.Println("Failed to unmarshal response body")
@@ -111,14 +111,14 @@ func (apiClient *KeycloakApiClient) CreateRole(roleName string) {
 	fmt.Println(resp)
 }
 
-func (apiClinet *KeycloakApiClient) InitRoles() {
+func (apiClient *KeycloakApiClient) InitRoles() {
 	var wg sync.WaitGroup
 	for _, role := range roles.RoleIds {
 		wg.Add(1)
 
 		go func(role string) {
 			defer wg.Done()
-			apiClinet.CreateRole(role)
+			apiClient.CreateRole(role)
 		}(role)
 	}
 	wg.Wait()
@@ -150,7 +150,7 @@ func (apiClient *KeycloakApiClient) GetClients() *[]KeycloakRealmClient {
 
 	resp, err := httpClient.Do(req)
 	if err != nil {
-		fmt.Println("Failed to get clinets: ", err)
+		fmt.Println("Failed to get clients: ", err)
 	}
 
 	respBody, err := ioutil.ReadAll(resp.Body)
@@ -165,11 +165,11 @@ func (apiClient *KeycloakApiClient) GetClients() *[]KeycloakRealmClient {
 }
 
 func getRightClientId(clients []KeycloakRealmClient) string {
-	conf := conf.GetConf()
+	c := conf.GetConf()
 	var id string
 
 	for _, clientStruct := range clients {
-		if clientStruct.ClientId == conf.Client {
+		if clientStruct.ClientId == c.Client {
 			id = clientStruct.Id
 		}
 	}
@@ -177,7 +177,7 @@ func getRightClientId(clients []KeycloakRealmClient) string {
 	return id
 }
 
-func (apiClinet *KeycloakApiClient) createProtocolMapperForClient(clientId string) {
+func (apiClient *KeycloakApiClient) createProtocolMapperForClient(clientId string) {
 	config := conf.GetConf()
 
 	httpClient := &http.Client{
@@ -196,7 +196,7 @@ func (apiClinet *KeycloakApiClient) createProtocolMapperForClient(clientId strin
 		fmt.Println("Failed to create new request for protocol mapper: ", err)
 	}
 
-	req.Header.Set("Authorization", "Bearer "+apiClinet.token)
+	req.Header.Set("Authorization", "Bearer "+apiClient.token)
 	req.Header.Set("Content-Type", "application/json")
 
 	resp, err := httpClient.Do(req)
